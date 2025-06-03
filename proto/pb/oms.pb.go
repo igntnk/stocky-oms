@@ -628,8 +628,9 @@ type OrderProduct struct {
 	ProductUuid   string                 `protobuf:"bytes,1,opt,name=product_uuid,json=productUuid,proto3" json:"product_uuid,omitempty"`
 	OrderUuid     string                 `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
 	ResultPrice   float64                `protobuf:"fixed64,3,opt,name=result_price,json=resultPrice,proto3" json:"result_price,omitempty"`
-	Amount        int32                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Product       *Product               `protobuf:"bytes,5,opt,name=product,proto3" json:"product,omitempty"`
+	ProductCode   string                 `protobuf:"bytes,4,opt,name=product_code,json=productCode,proto3" json:"product_code,omitempty"`
+	Amount        int32                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	Product       *Product               `protobuf:"bytes,6,opt,name=product,proto3" json:"product,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -683,6 +684,13 @@ func (x *OrderProduct) GetResultPrice() float64 {
 		return x.ResultPrice
 	}
 	return 0
+}
+
+func (x *OrderProduct) GetProductCode() string {
+	if x != nil {
+		return x.ProductCode
+	}
+	return ""
 }
 
 func (x *OrderProduct) GetAmount() int32 {
@@ -1165,14 +1173,15 @@ const file_oms_proto_rawDesc = "" +
 	"\rcreation_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fcreationDate\x12;\n" +
 	"\vfinish_date\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishDate\x12-\n" +
-	"\bproducts\x18\t \x03(\v2\x11.oms.OrderProductR\bproducts\"\xb3\x01\n" +
+	"\bproducts\x18\t \x03(\v2\x11.oms.OrderProductR\bproducts\"\xd6\x01\n" +
 	"\fOrderProduct\x12!\n" +
 	"\fproduct_uuid\x18\x01 \x01(\tR\vproductUuid\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x02 \x01(\tR\torderUuid\x12!\n" +
-	"\fresult_price\x18\x03 \x01(\x01R\vresultPrice\x12\x16\n" +
-	"\x06amount\x18\x04 \x01(\x05R\x06amount\x12&\n" +
-	"\aproduct\x18\x05 \x01(\v2\f.oms.ProductR\aproduct\"\x96\x01\n" +
+	"\fresult_price\x18\x03 \x01(\x01R\vresultPrice\x12!\n" +
+	"\fproduct_code\x18\x04 \x01(\tR\vproductCode\x12\x16\n" +
+	"\x06amount\x18\x05 \x01(\x05R\x06amount\x12&\n" +
+	"\aproduct\x18\x06 \x01(\v2\f.oms.ProductR\aproduct\"\x96\x01\n" +
 	"\x12CreateOrderRequest\x12\x18\n" +
 	"\acomment\x18\x01 \x01(\tR\acomment\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x19\n" +

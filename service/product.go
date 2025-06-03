@@ -39,7 +39,7 @@ func (s *productService) CreateProduct(ctx context.Context, req models.ProductCr
 		return nil, err
 	}
 
-	custCost, err := repository.Float64ToNumericWithPrecision(req.CustomerCost, 64)
+	custCost, err := repository.Float64ToNumericWithPrecision(req.CustomerCost)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req model
 		updateParams.ProductCode = prodUuid
 	}
 	if req.CustomerCost != nil {
-		custCost, err := repository.Float64ToNumericWithPrecision(*req.CustomerCost, 64)
+		custCost, err := repository.Float64ToNumericWithPrecision(*req.CustomerCost)
 		if err != nil {
 			return nil, err
 		}

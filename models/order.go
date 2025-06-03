@@ -18,8 +18,8 @@ const (
 type Order struct {
 	ID           uuid.UUID
 	Comment      string
-	UserID       uuid.UUID
-	StaffID      uuid.UUID
+	UserID       string
+	StaffID      string
 	OrderCost    float64
 	Status       OrderStatus
 	CreationDate time.Time
@@ -41,8 +41,8 @@ type OrderProduct struct {
 }
 
 type OrderCreateRequest struct {
-	UserID   uuid.UUID           `json:"user_id" validate:"required,uuid"`
-	StaffID  uuid.UUID           `json:"staff_id" validate:"required,uuid"`
+	UserID   string              `json:"user_id" validate:"required,uuid"`
+	StaffID  string              `json:"staff_id" validate:"required,uuid"`
 	Comment  string              `json:"comment" validate:"max=500"`
 	Products []OrderProductInput `json:"products" validate:"required,min=1,dive"`
 }

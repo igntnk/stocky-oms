@@ -39,8 +39,8 @@ func (s *orderServer) Create(ctx context.Context, req *pb.CreateOrderRequest) (*
 	}
 
 	createReq := models.OrderCreateRequest{
-		UserID:   uuid.MustParse(req.GetUserId()),
-		StaffID:  uuid.MustParse(req.GetStaffId()),
+		UserID:   req.GetUserId(),
+		StaffID:  req.GetStaffId(),
 		Comment:  req.GetComment(),
 		Products: products,
 	}
@@ -168,6 +168,7 @@ func (s *orderServer) orderToProto(o *models.OrderResponse) *pb.Order {
 		orderProducts = append(orderProducts, &pb.OrderProduct{
 			ProductUuid: p.ID,
 			OrderUuid:   o.ID,
+			ProductCode: p.ProductCode,
 			ResultPrice: p.Price,
 			Amount:      int32(p.Amount),
 		})

@@ -83,8 +83,9 @@ message OrderProduct {
   string product_uuid = 1;
   string order_uuid = 2;
   double result_price = 3;
-  int32 amount = 4;
-  Product product = 5;
+  string product_code = 4;
+  int32 amount = 5;
+  Product product = 6;
 }
 
 message CreateOrderRequest {
