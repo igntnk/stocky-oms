@@ -14,8 +14,8 @@ CREATE TABLE product (
 CREATE TABLE orders (
                         uuid UUID PRIMARY KEY,
                         comment TEXT,
-                        user_id UUID NOT NULL,
-                        staff_id UUID NOT NULL,
+                        user_id varchar(24) NOT NULL,
+                        staff_id varchar(24) NOT NULL,
                         order_cost DECIMAL(10, 2) NOT NULL,
                         creation_date TIMESTAMP NOT NULL DEFAULT NOW(),
                         finish_date TIMESTAMP,
