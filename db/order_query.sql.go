@@ -68,8 +68,8 @@ INSERT INTO orders (
 type CreateOrderParams struct {
 	Uuid      pgtype.UUID
 	Comment   pgtype.Text
-	UserID    pgtype.UUID
-	StaffID   pgtype.UUID
+	UserID    string
+	StaffID   string
 	OrderCost pgtype.Numeric
 }
 
@@ -243,8 +243,8 @@ WHERE uuid = $1
 type UpdateOrderParams struct {
 	Uuid      pgtype.UUID
 	Comment   pgtype.Text
-	UserID    pgtype.UUID
-	StaffID   pgtype.UUID
+	UserID    string
+	StaffID   string
 	OrderCost pgtype.Numeric
 	Status    OrderStatus
 }

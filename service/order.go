@@ -56,15 +56,9 @@ func (s *orderService) CreateOrder(ctx context.Context, req models.OrderCreateRe
 			Bytes: orderUUID,
 			Valid: true,
 		},
-		Comment: pgtype.Text{String: req.Comment},
-		UserID: pgtype.UUID{
-			Bytes: req.UserID,
-			Valid: true,
-		},
-		StaffID: pgtype.UUID{
-			Bytes: req.StaffID,
-			Valid: true,
-		},
+		Comment:   pgtype.Text{String: req.Comment},
+		UserID:    req.UserID.String(),
+		StaffID:   req.StaffID.String(),
 		OrderCost: cost,
 	}, products)
 	if err != nil {
@@ -272,8 +266,8 @@ func (s *orderService) buildOrderResponse(
 	return &models.OrderResponse{
 		ID:           order.Uuid.String(),
 		Comment:      order.Comment.String,
-		UserID:       order.Uuid.String(),
-		StaffID:      order.StaffID.String(),
+		UserID:       order.UserID,
+		StaffID:      order.StaffID,
 		OrderCost:    resOrderCost,
 		Status:       models.OrderStatus(order.Status),
 		CreationDate: order.CreationDate.Time.Format(time.RFC3339),
