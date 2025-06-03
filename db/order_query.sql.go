@@ -15,13 +15,13 @@ const addProductToOrder = `-- name: AddProductToOrder :one
 INSERT INTO order_products (
     product_uuid, order_uuid, result_price, amount
 ) VALUES (
-             $1, $2, $3, $4
+             (select uuid from product where product_code = $1), $2, $3, $4
          )
     RETURNING product_uuid, order_uuid, result_price, amount
 `
 
 type AddProductToOrderParams struct {
-	ProductUuid pgtype.UUID
+	ProductCode pgtype.UUID
 	OrderUuid   pgtype.UUID
 	ResultPrice pgtype.Numeric
 	Amount      int32
@@ -29,7 +29,7 @@ type AddProductToOrderParams struct {
 
 func (q *Queries) AddProductToOrder(ctx context.Context, arg AddProductToOrderParams) (OrderProduct, error) {
 	row := q.db.QueryRow(ctx, addProductToOrder,
-		arg.ProductUuid,
+		arg.ProductCode,
 		arg.OrderUuid,
 		arg.ResultPrice,
 		arg.Amount,
@@ -68,8 +68,8 @@ INSERT INTO orders (
 type CreateOrderParams struct {
 	Uuid      pgtype.UUID
 	Comment   pgtype.Text
-	UserID    pgtype.UUID
-	StaffID   pgtype.UUID
+	UserID    string
+	StaffID   string
 	OrderCost pgtype.Numeric
 }
 
@@ -105,6 +105,15 @@ func (q *Queries) DeleteOrder(ctx context.Context, uuid pgtype.UUID) error {
 	return err
 }
 
+const deleteOrderProducts = `-- name: DeleteOrderProducts :exec
+DELETE FROM order_products where order_uuid = $1
+`
+
+func (q *Queries) DeleteOrderProducts(ctx context.Context, orderUuid pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrderProducts, orderUuid)
+	return err
+}
+
 const getOrder = `-- name: GetOrder :one
 SELECT uuid, comment, user_id, staff_id, order_cost, creation_date, finish_date, status FROM orders
 WHERE uuid = $1 LIMIT 1
@@ -127,8 +136,8 @@ func (q *Queries) GetOrder(ctx context.Context, uuid pgtype.UUID) (Order, error)
 }
 
 const getOrderProducts = `-- name: GetOrderProducts :many
-SELECT op.product_uuid, op.order_uuid, op.result_price, op.amount, p.name as product_name FROM order_products op
-                                             JOIN product p ON op.product_uuid = p.uuid
+SELECT op.product_uuid, op.order_uuid, op.result_price, op.amount, p.name as product_name, p.product_code FROM order_products op
+                                                             JOIN product p ON op.product_uuid = p.uuid
 WHERE op.order_uuid = $1
 `
 
@@ -138,6 +147,7 @@ type GetOrderProductsRow struct {
 	ResultPrice pgtype.Numeric
 	Amount      int32
 	ProductName string
+	ProductCode pgtype.UUID
 }
 
 func (q *Queries) GetOrderProducts(ctx context.Context, orderUuid pgtype.UUID) ([]GetOrderProductsRow, error) {
@@ -155,6 +165,7 @@ func (q *Queries) GetOrderProducts(ctx context.Context, orderUuid pgtype.UUID) (
 			&i.ResultPrice,
 			&i.Amount,
 			&i.ProductName,
+			&i.ProductCode,
 		); err != nil {
 			return nil, err
 		}
@@ -243,8 +254,8 @@ WHERE uuid = $1
 type UpdateOrderParams struct {
 	Uuid      pgtype.UUID
 	Comment   pgtype.Text
-	UserID    pgtype.UUID
-	StaffID   pgtype.UUID
+	UserID    string
+	StaffID   string
 	OrderCost pgtype.Numeric
 	Status    OrderStatus
 }

@@ -75,7 +75,7 @@ func (r *orderRepository) CreateWithProducts(
 		product.OrderUuid = order.Uuid
 
 		// Проверяем существование продукта
-		_, err := qtx.GetProduct(ctx, product.ProductUuid)
+		_, err := qtx.GetProduct(ctx, product.ProductCode)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return db.Order{}, ErrProductNotFound
@@ -108,7 +108,7 @@ func (r *orderRepository) CreateWithProducts(
 
 	// Обновляем сумму заказа (на случай если она не была указана)
 	if orCost == 0 {
-		totalNum, err := Float64ToNumericWithPrecision(total, 64)
+		totalNum, err := Float64ToNumericWithPrecision(total)
 		if err != nil {
 			return db.Order{}, fmt.Errorf("failed to convert total price: %w", err)
 		}
@@ -187,6 +187,11 @@ func (r *orderRepository) UpdateStatus(
 func (r *orderRepository) Delete(ctx context.Context, orderUuid string) error {
 	var resUuid pgtype.UUID
 	err := resUuid.Scan(orderUuid)
+	if err != nil {
+		return err
+	}
+
+	err = r.queries.DeleteOrderProducts(ctx, resUuid)
 	if err != nil {
 		return err
 	}

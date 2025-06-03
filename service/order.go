@@ -44,7 +44,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req models.OrderCreateRe
 		return nil, err
 	}
 
-	cost, err := repository.Float64ToNumericWithPrecision(totalCost, 64)
+	cost, err := repository.Float64ToNumericWithPrecision(totalCost)
 	if err != nil {
 		return nil, err
 	}
@@ -56,15 +56,9 @@ func (s *orderService) CreateOrder(ctx context.Context, req models.OrderCreateRe
 			Bytes: orderUUID,
 			Valid: true,
 		},
-		Comment: pgtype.Text{String: req.Comment},
-		UserID: pgtype.UUID{
-			Bytes: req.UserID,
-			Valid: true,
-		},
-		StaffID: pgtype.UUID{
-			Bytes: req.StaffID,
-			Valid: true,
-		},
+		Comment:   pgtype.Text{String: req.Comment, Valid: true},
+		UserID:    req.UserID,
+		StaffID:   req.StaffID,
 		OrderCost: cost,
 	}, products)
 	if err != nil {
@@ -102,7 +96,7 @@ func (s *orderService) validateOrderProducts(
 		itemTotal := cost * float64(item.Amount)
 
 		repoProducts = append(repoProducts, db.AddProductToOrderParams{
-			ProductUuid: pgtype.UUID{
+			ProductCode: pgtype.UUID{
 				Bytes: item.ProductID,
 				Valid: true,
 			},
@@ -256,11 +250,12 @@ func (s *orderService) buildOrderResponse(
 		}
 
 		productDetails = append(productDetails, models.ProductDetail{
-			ID:         p.ProductUuid.String(),
-			Name:       p.ProductName,
-			Price:      resPrice,
-			Amount:     int(p.Amount),
-			TotalPrice: resPrice * float64(p.Amount),
+			ID:          p.ProductUuid.String(),
+			Name:        p.ProductName,
+			ProductCode: p.ProductCode.String(),
+			Price:       resPrice,
+			Amount:      int(p.Amount),
+			TotalPrice:  resPrice * float64(p.Amount),
 		})
 	}
 
@@ -272,8 +267,8 @@ func (s *orderService) buildOrderResponse(
 	return &models.OrderResponse{
 		ID:           order.Uuid.String(),
 		Comment:      order.Comment.String,
-		UserID:       order.Uuid.String(),
-		StaffID:      order.StaffID.String(),
+		UserID:       order.UserID,
+		StaffID:      order.StaffID,
 		OrderCost:    resOrderCost,
 		Status:       models.OrderStatus(order.Status),
 		CreationDate: order.CreationDate.Time.Format(time.RFC3339),

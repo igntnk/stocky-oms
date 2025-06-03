@@ -20,12 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProductService_Create_FullMethodName     = "/sms.ProductService/Create"
-	ProductService_Get_FullMethodName        = "/sms.ProductService/Get"
-	ProductService_List_FullMethodName       = "/sms.ProductService/List"
-	ProductService_Update_FullMethodName     = "/sms.ProductService/Update"
-	ProductService_Delete_FullMethodName     = "/sms.ProductService/Delete"
-	ProductService_GetByOrder_FullMethodName = "/sms.ProductService/GetByOrder"
+	ProductService_Create_FullMethodName     = "/oms.ProductService/Create"
+	ProductService_Get_FullMethodName        = "/oms.ProductService/Get"
+	ProductService_List_FullMethodName       = "/oms.ProductService/List"
+	ProductService_Update_FullMethodName     = "/oms.ProductService/Update"
+	ProductService_Delete_FullMethodName     = "/oms.ProductService/Delete"
+	ProductService_GetByOrder_FullMethodName = "/oms.ProductService/GetByOrder"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -279,7 +279,7 @@ func _ProductService_GetByOrder_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ProductService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "sms.ProductService",
+	ServiceName: "oms.ProductService",
 	HandlerType: (*ProductServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -312,12 +312,12 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	OrderService_Create_FullMethodName      = "/sms.OrderService/Create"
-	OrderService_Get_FullMethodName         = "/sms.OrderService/Get"
-	OrderService_List_FullMethodName        = "/sms.OrderService/List"
-	OrderService_Update_FullMethodName      = "/sms.OrderService/Update"
-	OrderService_Delete_FullMethodName      = "/sms.OrderService/Delete"
-	OrderService_GetProducts_FullMethodName = "/sms.OrderService/GetProducts"
+	OrderService_Create_FullMethodName      = "/oms.OrderService/Create"
+	OrderService_Get_FullMethodName         = "/oms.OrderService/Get"
+	OrderService_List_FullMethodName        = "/oms.OrderService/List"
+	OrderService_Update_FullMethodName      = "/oms.OrderService/Update"
+	OrderService_Delete_FullMethodName      = "/oms.OrderService/Delete"
+	OrderService_GetProducts_FullMethodName = "/oms.OrderService/GetProducts"
 )
 
 // OrderServiceClient is the client API for OrderService service.
@@ -571,7 +571,7 @@ func _OrderService_GetProducts_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var OrderService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "sms.OrderService",
+	ServiceName: "oms.OrderService",
 	HandlerType: (*OrderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

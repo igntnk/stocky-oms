@@ -26,11 +26,14 @@ WHERE uuid = $1
 DELETE FROM orders
 WHERE uuid = $1;
 
+-- name: DeleteOrderProducts :exec
+DELETE FROM order_products where order_uuid = $1;
+
 -- name: AddProductToOrder :one
 INSERT INTO order_products (
     product_uuid, order_uuid, result_price, amount
 ) VALUES (
-             $1, $2, $3, $4
+             (select uuid from product where product_code = $1), $2, $3, $4
          )
     RETURNING *;
 
@@ -39,9 +42,10 @@ DELETE FROM order_products
 WHERE product_uuid = $1 AND order_uuid = $2;
 
 -- name: GetOrderProducts :many
-SELECT op.*, p.name as product_name FROM order_products op
-                                             JOIN product p ON op.product_uuid = p.uuid
+SELECT op.*, p.name as product_name, p.product_code FROM order_products op
+                                                             JOIN product p ON op.product_uuid = p.uuid
 WHERE op.order_uuid = $1;
+
 
 -- name: CalculateOrderTotal :one
 SELECT SUM(result_price * amount) as total FROM order_products

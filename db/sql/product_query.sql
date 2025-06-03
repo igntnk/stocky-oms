@@ -5,7 +5,7 @@ VALUES ($1, $2, $3, $4)
 
 -- name: GetProduct :one
 SELECT * FROM product
-WHERE uuid = $1 LIMIT 1;
+WHERE product_code = $1 LIMIT 1;
 
 -- name: ListProducts :many
 SELECT * FROM product

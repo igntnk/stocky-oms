@@ -58,8 +58,8 @@ func (ns NullOrderStatus) Value() (driver.Value, error) {
 type Order struct {
 	Uuid         pgtype.UUID
 	Comment      pgtype.Text
-	UserID       pgtype.UUID
-	StaffID      pgtype.UUID
+	UserID       string
+	StaffID      string
 	OrderCost    pgtype.Numeric
 	CreationDate pgtype.Timestamp
 	FinishDate   pgtype.Timestamp

@@ -522,7 +522,7 @@ type Order struct {
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	StaffId       string                 `protobuf:"bytes,4,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"`
 	OrderCost     float64                `protobuf:"fixed64,5,opt,name=order_cost,json=orderCost,proto3" json:"order_cost,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=sms.OrderStatus" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=oms.OrderStatus" json:"status,omitempty"`
 	CreationDate  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=creation_date,json=creationDate,proto3" json:"creation_date,omitempty"`
 	FinishDate    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=finish_date,json=finishDate,proto3" json:"finish_date,omitempty"`
 	Products      []*OrderProduct        `protobuf:"bytes,9,rep,name=products,proto3" json:"products,omitempty"`
@@ -628,8 +628,9 @@ type OrderProduct struct {
 	ProductUuid   string                 `protobuf:"bytes,1,opt,name=product_uuid,json=productUuid,proto3" json:"product_uuid,omitempty"`
 	OrderUuid     string                 `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
 	ResultPrice   float64                `protobuf:"fixed64,3,opt,name=result_price,json=resultPrice,proto3" json:"result_price,omitempty"`
-	Amount        int32                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Product       *Product               `protobuf:"bytes,5,opt,name=product,proto3" json:"product,omitempty"`
+	ProductCode   string                 `protobuf:"bytes,4,opt,name=product_code,json=productCode,proto3" json:"product_code,omitempty"`
+	Amount        int32                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	Product       *Product               `protobuf:"bytes,6,opt,name=product,proto3" json:"product,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -683,6 +684,13 @@ func (x *OrderProduct) GetResultPrice() float64 {
 		return x.ResultPrice
 	}
 	return 0
+}
+
+func (x *OrderProduct) GetProductCode() string {
+	if x != nil {
+		return x.ProductCode
+	}
+	return ""
 }
 
 func (x *OrderProduct) GetAmount() int32 {
@@ -867,7 +875,7 @@ type ListOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,3,opt,name=status,proto3,enum=sms.OrderStatus" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,3,opt,name=status,proto3,enum=oms.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -971,7 +979,7 @@ type UpdateOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	Comment       *string                `protobuf:"bytes,2,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
-	Status        *OrderStatus           `protobuf:"varint,3,opt,name=status,proto3,enum=sms.OrderStatus,oneof" json:"status,omitempty"`
+	Status        *OrderStatus           `protobuf:"varint,3,opt,name=status,proto3,enum=oms.OrderStatus,oneof" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1119,7 +1127,7 @@ var File_oms_proto protoreflect.FileDescriptor
 
 const file_oms_proto_rawDesc = "" +
 	"\n" +
-	"\toms.proto\x12\x03sms\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xef\x01\n" +
+	"\toms.proto\x12\x03oms\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xef\x01\n" +
 	"\aProduct\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -1148,7 +1156,7 @@ const file_oms_proto_rawDesc = "" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\"8\n" +
 	"\fListResponse\x12(\n" +
-	"\bproducts\x18\x01 \x03(\v2\f.sms.ProductR\bproducts\"#\n" +
+	"\bproducts\x18\x01 \x03(\v2\f.oms.ProductR\bproducts\"#\n" +
 	"\rDeleteRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"2\n" +
 	"\x11GetByOrderRequest\x12\x1d\n" +
@@ -1161,23 +1169,24 @@ const file_oms_proto_rawDesc = "" +
 	"\bstaff_id\x18\x04 \x01(\tR\astaffId\x12\x1d\n" +
 	"\n" +
 	"order_cost\x18\x05 \x01(\x01R\torderCost\x12(\n" +
-	"\x06status\x18\x06 \x01(\x0e2\x10.sms.OrderStatusR\x06status\x12?\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x10.oms.OrderStatusR\x06status\x12?\n" +
 	"\rcreation_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fcreationDate\x12;\n" +
 	"\vfinish_date\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishDate\x12-\n" +
-	"\bproducts\x18\t \x03(\v2\x11.sms.OrderProductR\bproducts\"\xb3\x01\n" +
+	"\bproducts\x18\t \x03(\v2\x11.oms.OrderProductR\bproducts\"\xd6\x01\n" +
 	"\fOrderProduct\x12!\n" +
 	"\fproduct_uuid\x18\x01 \x01(\tR\vproductUuid\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x02 \x01(\tR\torderUuid\x12!\n" +
-	"\fresult_price\x18\x03 \x01(\x01R\vresultPrice\x12\x16\n" +
-	"\x06amount\x18\x04 \x01(\x05R\x06amount\x12&\n" +
-	"\aproduct\x18\x05 \x01(\v2\f.sms.ProductR\aproduct\"\x96\x01\n" +
+	"\fresult_price\x18\x03 \x01(\x01R\vresultPrice\x12!\n" +
+	"\fproduct_code\x18\x04 \x01(\tR\vproductCode\x12\x16\n" +
+	"\x06amount\x18\x05 \x01(\x05R\x06amount\x12&\n" +
+	"\aproduct\x18\x06 \x01(\v2\f.oms.ProductR\aproduct\"\x96\x01\n" +
 	"\x12CreateOrderRequest\x12\x18\n" +
 	"\acomment\x18\x01 \x01(\tR\acomment\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x19\n" +
 	"\bstaff_id\x18\x03 \x01(\tR\astaffId\x122\n" +
-	"\bproducts\x18\x04 \x03(\v2\x16.sms.OrderProductInputR\bproducts\"N\n" +
+	"\bproducts\x18\x04 \x03(\v2\x16.oms.OrderProductInputR\bproducts\"N\n" +
 	"\x11OrderProductInput\x12!\n" +
 	"\fproduct_uuid\x18\x01 \x01(\tR\vproductUuid\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x05R\x06amount\"%\n" +
@@ -1186,14 +1195,14 @@ const file_oms_proto_rawDesc = "" +
 	"\x10ListOrderRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12(\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x10.sms.OrderStatusR\x06status\"7\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x10.oms.OrderStatusR\x06status\"7\n" +
 	"\x11ListOrderResponse\x12\"\n" +
 	"\x06orders\x18\x01 \x03(\v2\n" +
-	".sms.OrderR\x06orders\"\x8d\x01\n" +
+	".oms.OrderR\x06orders\"\x8d\x01\n" +
 	"\x12UpdateOrderRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1d\n" +
 	"\acomment\x18\x02 \x01(\tH\x00R\acomment\x88\x01\x01\x12-\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x10.sms.OrderStatusH\x01R\x06status\x88\x01\x01B\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x10.oms.OrderStatusH\x01R\x06status\x88\x01\x01B\n" +
 	"\n" +
 	"\b_commentB\t\n" +
 	"\a_status\"(\n" +
@@ -1209,23 +1218,23 @@ const file_oms_proto_rawDesc = "" +
 	"\tCOMPLETED\x10\x02\x12\r\n" +
 	"\tCANCELLED\x10\x032\xaa\x02\n" +
 	"\x0eProductService\x12*\n" +
-	"\x06Create\x12\x12.sms.CreateRequest\x1a\f.sms.Product\x12$\n" +
-	"\x03Get\x12\x0f.sms.GetRequest\x1a\f.sms.Product\x12+\n" +
-	"\x04List\x12\x10.sms.ListRequest\x1a\x11.sms.ListResponse\x12*\n" +
-	"\x06Update\x12\x12.sms.UpdateRequest\x1a\f.sms.Product\x124\n" +
-	"\x06Delete\x12\x12.sms.DeleteRequest\x1a\x16.google.protobuf.Empty\x127\n" +
+	"\x06Create\x12\x12.oms.CreateRequest\x1a\f.oms.Product\x12$\n" +
+	"\x03Get\x12\x0f.oms.GetRequest\x1a\f.oms.Product\x12+\n" +
+	"\x04List\x12\x10.oms.ListRequest\x1a\x11.oms.ListResponse\x12*\n" +
+	"\x06Update\x12\x12.oms.UpdateRequest\x1a\f.oms.Product\x124\n" +
+	"\x06Delete\x12\x12.oms.DeleteRequest\x1a\x16.google.protobuf.Empty\x127\n" +
 	"\n" +
-	"GetByOrder\x12\x16.sms.GetByOrderRequest\x1a\x11.sms.ListResponse2\xc2\x02\n" +
+	"GetByOrder\x12\x16.oms.GetByOrderRequest\x1a\x11.oms.ListResponse2\xc2\x02\n" +
 	"\fOrderService\x12-\n" +
-	"\x06Create\x12\x17.sms.CreateOrderRequest\x1a\n" +
-	".sms.Order\x12'\n" +
-	"\x03Get\x12\x14.sms.GetOrderRequest\x1a\n" +
-	".sms.Order\x125\n" +
-	"\x04List\x12\x15.sms.ListOrderRequest\x1a\x16.sms.ListOrderResponse\x12-\n" +
-	"\x06Update\x12\x17.sms.UpdateOrderRequest\x1a\n" +
-	".sms.Order\x129\n" +
-	"\x06Delete\x12\x17.sms.DeleteOrderRequest\x1a\x16.google.protobuf.Empty\x129\n" +
-	"\vGetProducts\x12\x17.sms.GetProductsRequest\x1a\x11.sms.ListResponseB'Z%github.com/igntnk/stocky-oms/proto/pbb\x06proto3"
+	"\x06Create\x12\x17.oms.CreateOrderRequest\x1a\n" +
+	".oms.Order\x12'\n" +
+	"\x03Get\x12\x14.oms.GetOrderRequest\x1a\n" +
+	".oms.Order\x125\n" +
+	"\x04List\x12\x15.oms.ListOrderRequest\x1a\x16.oms.ListOrderResponse\x12-\n" +
+	"\x06Update\x12\x17.oms.UpdateOrderRequest\x1a\n" +
+	".oms.Order\x129\n" +
+	"\x06Delete\x12\x17.oms.DeleteOrderRequest\x1a\x16.google.protobuf.Empty\x129\n" +
+	"\vGetProducts\x12\x17.oms.GetProductsRequest\x1a\x11.oms.ListResponseB'Z%github.com/igntnk/stocky-oms/proto/pbb\x06proto3"
 
 var (
 	file_oms_proto_rawDescOnce sync.Once
@@ -1242,65 +1251,65 @@ func file_oms_proto_rawDescGZIP() []byte {
 var file_oms_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_oms_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_oms_proto_goTypes = []any{
-	(OrderStatus)(0),              // 0: sms.OrderStatus
-	(*Product)(nil),               // 1: sms.Product
-	(*CreateRequest)(nil),         // 2: sms.CreateRequest
-	(*UpdateRequest)(nil),         // 3: sms.UpdateRequest
-	(*GetRequest)(nil),            // 4: sms.GetRequest
-	(*ListRequest)(nil),           // 5: sms.ListRequest
-	(*ListResponse)(nil),          // 6: sms.ListResponse
-	(*DeleteRequest)(nil),         // 7: sms.DeleteRequest
-	(*GetByOrderRequest)(nil),     // 8: sms.GetByOrderRequest
-	(*Order)(nil),                 // 9: sms.Order
-	(*OrderProduct)(nil),          // 10: sms.OrderProduct
-	(*CreateOrderRequest)(nil),    // 11: sms.CreateOrderRequest
-	(*OrderProductInput)(nil),     // 12: sms.OrderProductInput
-	(*GetOrderRequest)(nil),       // 13: sms.GetOrderRequest
-	(*ListOrderRequest)(nil),      // 14: sms.ListOrderRequest
-	(*ListOrderResponse)(nil),     // 15: sms.ListOrderResponse
-	(*UpdateOrderRequest)(nil),    // 16: sms.UpdateOrderRequest
-	(*DeleteOrderRequest)(nil),    // 17: sms.DeleteOrderRequest
-	(*GetProductsRequest)(nil),    // 18: sms.GetProductsRequest
+	(OrderStatus)(0),              // 0: oms.OrderStatus
+	(*Product)(nil),               // 1: oms.Product
+	(*CreateRequest)(nil),         // 2: oms.CreateRequest
+	(*UpdateRequest)(nil),         // 3: oms.UpdateRequest
+	(*GetRequest)(nil),            // 4: oms.GetRequest
+	(*ListRequest)(nil),           // 5: oms.ListRequest
+	(*ListResponse)(nil),          // 6: oms.ListResponse
+	(*DeleteRequest)(nil),         // 7: oms.DeleteRequest
+	(*GetByOrderRequest)(nil),     // 8: oms.GetByOrderRequest
+	(*Order)(nil),                 // 9: oms.Order
+	(*OrderProduct)(nil),          // 10: oms.OrderProduct
+	(*CreateOrderRequest)(nil),    // 11: oms.CreateOrderRequest
+	(*OrderProductInput)(nil),     // 12: oms.OrderProductInput
+	(*GetOrderRequest)(nil),       // 13: oms.GetOrderRequest
+	(*ListOrderRequest)(nil),      // 14: oms.ListOrderRequest
+	(*ListOrderResponse)(nil),     // 15: oms.ListOrderResponse
+	(*UpdateOrderRequest)(nil),    // 16: oms.UpdateOrderRequest
+	(*DeleteOrderRequest)(nil),    // 17: oms.DeleteOrderRequest
+	(*GetProductsRequest)(nil),    // 18: oms.GetProductsRequest
 	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),         // 20: google.protobuf.Empty
 }
 var file_oms_proto_depIdxs = []int32{
-	19, // 0: sms.Product.created_at:type_name -> google.protobuf.Timestamp
-	19, // 1: sms.Product.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 2: sms.ListResponse.products:type_name -> sms.Product
-	0,  // 3: sms.Order.status:type_name -> sms.OrderStatus
-	19, // 4: sms.Order.creation_date:type_name -> google.protobuf.Timestamp
-	19, // 5: sms.Order.finish_date:type_name -> google.protobuf.Timestamp
-	10, // 6: sms.Order.products:type_name -> sms.OrderProduct
-	1,  // 7: sms.OrderProduct.product:type_name -> sms.Product
-	12, // 8: sms.CreateOrderRequest.products:type_name -> sms.OrderProductInput
-	0,  // 9: sms.ListOrderRequest.status:type_name -> sms.OrderStatus
-	9,  // 10: sms.ListOrderResponse.orders:type_name -> sms.Order
-	0,  // 11: sms.UpdateOrderRequest.status:type_name -> sms.OrderStatus
-	2,  // 12: sms.ProductService.Create:input_type -> sms.CreateRequest
-	4,  // 13: sms.ProductService.Get:input_type -> sms.GetRequest
-	5,  // 14: sms.ProductService.List:input_type -> sms.ListRequest
-	3,  // 15: sms.ProductService.Update:input_type -> sms.UpdateRequest
-	7,  // 16: sms.ProductService.Delete:input_type -> sms.DeleteRequest
-	8,  // 17: sms.ProductService.GetByOrder:input_type -> sms.GetByOrderRequest
-	11, // 18: sms.OrderService.Create:input_type -> sms.CreateOrderRequest
-	13, // 19: sms.OrderService.Get:input_type -> sms.GetOrderRequest
-	14, // 20: sms.OrderService.List:input_type -> sms.ListOrderRequest
-	16, // 21: sms.OrderService.Update:input_type -> sms.UpdateOrderRequest
-	17, // 22: sms.OrderService.Delete:input_type -> sms.DeleteOrderRequest
-	18, // 23: sms.OrderService.GetProducts:input_type -> sms.GetProductsRequest
-	1,  // 24: sms.ProductService.Create:output_type -> sms.Product
-	1,  // 25: sms.ProductService.Get:output_type -> sms.Product
-	6,  // 26: sms.ProductService.List:output_type -> sms.ListResponse
-	1,  // 27: sms.ProductService.Update:output_type -> sms.Product
-	20, // 28: sms.ProductService.Delete:output_type -> google.protobuf.Empty
-	6,  // 29: sms.ProductService.GetByOrder:output_type -> sms.ListResponse
-	9,  // 30: sms.OrderService.Create:output_type -> sms.Order
-	9,  // 31: sms.OrderService.Get:output_type -> sms.Order
-	15, // 32: sms.OrderService.List:output_type -> sms.ListOrderResponse
-	9,  // 33: sms.OrderService.Update:output_type -> sms.Order
-	20, // 34: sms.OrderService.Delete:output_type -> google.protobuf.Empty
-	6,  // 35: sms.OrderService.GetProducts:output_type -> sms.ListResponse
+	19, // 0: oms.Product.created_at:type_name -> google.protobuf.Timestamp
+	19, // 1: oms.Product.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 2: oms.ListResponse.products:type_name -> oms.Product
+	0,  // 3: oms.Order.status:type_name -> oms.OrderStatus
+	19, // 4: oms.Order.creation_date:type_name -> google.protobuf.Timestamp
+	19, // 5: oms.Order.finish_date:type_name -> google.protobuf.Timestamp
+	10, // 6: oms.Order.products:type_name -> oms.OrderProduct
+	1,  // 7: oms.OrderProduct.product:type_name -> oms.Product
+	12, // 8: oms.CreateOrderRequest.products:type_name -> oms.OrderProductInput
+	0,  // 9: oms.ListOrderRequest.status:type_name -> oms.OrderStatus
+	9,  // 10: oms.ListOrderResponse.orders:type_name -> oms.Order
+	0,  // 11: oms.UpdateOrderRequest.status:type_name -> oms.OrderStatus
+	2,  // 12: oms.ProductService.Create:input_type -> oms.CreateRequest
+	4,  // 13: oms.ProductService.Get:input_type -> oms.GetRequest
+	5,  // 14: oms.ProductService.List:input_type -> oms.ListRequest
+	3,  // 15: oms.ProductService.Update:input_type -> oms.UpdateRequest
+	7,  // 16: oms.ProductService.Delete:input_type -> oms.DeleteRequest
+	8,  // 17: oms.ProductService.GetByOrder:input_type -> oms.GetByOrderRequest
+	11, // 18: oms.OrderService.Create:input_type -> oms.CreateOrderRequest
+	13, // 19: oms.OrderService.Get:input_type -> oms.GetOrderRequest
+	14, // 20: oms.OrderService.List:input_type -> oms.ListOrderRequest
+	16, // 21: oms.OrderService.Update:input_type -> oms.UpdateOrderRequest
+	17, // 22: oms.OrderService.Delete:input_type -> oms.DeleteOrderRequest
+	18, // 23: oms.OrderService.GetProducts:input_type -> oms.GetProductsRequest
+	1,  // 24: oms.ProductService.Create:output_type -> oms.Product
+	1,  // 25: oms.ProductService.Get:output_type -> oms.Product
+	6,  // 26: oms.ProductService.List:output_type -> oms.ListResponse
+	1,  // 27: oms.ProductService.Update:output_type -> oms.Product
+	20, // 28: oms.ProductService.Delete:output_type -> google.protobuf.Empty
+	6,  // 29: oms.ProductService.GetByOrder:output_type -> oms.ListResponse
+	9,  // 30: oms.OrderService.Create:output_type -> oms.Order
+	9,  // 31: oms.OrderService.Get:output_type -> oms.Order
+	15, // 32: oms.OrderService.List:output_type -> oms.ListOrderResponse
+	9,  // 33: oms.OrderService.Update:output_type -> oms.Order
+	20, // 34: oms.OrderService.Delete:output_type -> google.protobuf.Empty
+	6,  // 35: oms.OrderService.GetProducts:output_type -> oms.ListResponse
 	24, // [24:36] is the sub-list for method output_type
 	12, // [12:24] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
