@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/igntnk/stocky-oms/models"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/igntnk/stocky-oms/db"
@@ -12,6 +14,7 @@ import (
 )
 
 type OrderRepository interface {
+	CreateNakedOrder(ctx context.Context, orderParams db.CreateOrderParams) (db.Order, error)
 	CreateWithProducts(ctx context.Context, orderParams db.CreateOrderParams, products []db.AddProductToOrderParams) (db.Order, error)
 	Get(ctx context.Context, uuid string) (db.Order, error)
 	List(ctx context.Context, limit, offset int32, status db.OrderStatus) ([]db.Order, error)
@@ -20,6 +23,7 @@ type OrderRepository interface {
 	Delete(ctx context.Context, uuid string) error
 	GetOrderProducts(ctx context.Context, orderUUID string) ([]db.GetOrderProductsRow, error)
 	CalculateOrderTotal(ctx context.Context, orderUUID string) (int64, error)
+	AddOrderProduct(ctx context.Context, orderID string, productID string, amount float64) (*models.ProductDetail, error)
 }
 
 type orderRepository struct {
@@ -34,6 +38,45 @@ func NewOrderRepository(pool *pgxpool.Pool) OrderRepository {
 	}
 }
 
+func (r *orderRepository) AddOrderProduct(ctx context.Context, orderID string, productID string, amount float64) (*models.ProductDetail, error) {
+	prUuid, err := uuid.Parse(productID)
+	if err != nil {
+		return nil, err
+	}
+
+	orUuid, err := uuid.Parse(orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	cost, err := Float64ToNumericWithPrecision(200)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = r.queries.AddProductToOrder(ctx, db.AddProductToOrderParams{
+		ProductCode: pgtype.UUID{
+			Bytes: prUuid,
+			Valid: true,
+		},
+		OrderUuid: pgtype.UUID{
+			Bytes: orUuid,
+			Valid: true,
+		},
+		ResultPrice: cost,
+		Amount:      int32(amount),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.ProductDetail{
+		Price:       100,
+		ProductCode: productID,
+		Amount:      int(amount),
+	}, nil
+}
+
 func (r *orderRepository) UpdateOrder(ctx context.Context, order db.UpdateOrderParams) (db.Order, error) {
 	resOrder, err := r.queries.UpdateOrder(ctx, order)
 	if err != nil {
@@ -44,6 +87,16 @@ func (r *orderRepository) UpdateOrder(ctx context.Context, order db.UpdateOrderP
 	}
 
 	return resOrder, nil
+}
+
+func (r *orderRepository) CreateNakedOrder(ctx context.Context, orderParams db.CreateOrderParams) (db.Order, error) {
+	// Создаем заказ
+	order, err := r.queries.CreateOrder(ctx, orderParams)
+	if err != nil {
+		return db.Order{}, fmt.Errorf("failed to create order: %w", err)
+	}
+
+	return order, nil
 }
 
 func (r *orderRepository) CreateWithProducts(

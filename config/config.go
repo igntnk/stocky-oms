@@ -22,6 +22,7 @@ type Config struct {
 		RESTPort int `mapstructure:"rest_port"`
 	} `yaml:"server" mapstructure:"server"`
 	SMS GRPCClient `mapstructure:"sms"`
+	OMS GRPCClient `mapstructure:"oms"`
 }
 
 type GRPCClient struct {

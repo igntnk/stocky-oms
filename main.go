@@ -68,16 +68,29 @@ func main() {
 	}
 	smsClient := clients.NewSMSClient(smsConn)
 
+	omsConn, err := grpcapp.NewGrpcClientConn(
+		mainCtx,
+		cfg.SMS.Address,
+		cfg.SMS.Timeout,
+		cfg.SMS.Tries,
+		cfg.SMS.Insecure,
+	)
+	if err != nil {
+		logger.Fatal().Err(err).Send()
+		return
+	}
+	omsClient := clients.NewOMSClient(omsConn)
+
 	conn := trmpgx.DefaultCtxGetter.DefaultTrOrDB(mainCtx, pool)
 
 	productRepo := repository.NewProductRepository(conn)
 	orderRepo := repository.NewOrderRepository(pool)
 
 	productService := service.NewProductService(productRepo)
-	orderService := service.NewOrderService(smsClient, orderRepo, productRepo)
+	orderService := service.NewOrderService(smsClient, omsClient, orderRepo, productRepo)
 
 	grpcServer := grpc.NewServer()
-	grpcapp.RegisterOrderServer(grpcServer, productService, orderService)
+	grpcapp.RegisterOrderServer(grpcServer, smsClient, productService, orderService)
 	grpcapp.RegisterProductServer(grpcServer, productService)
 
 	cookedGrpcServer := grpcapp.New(grpcServer, cfg.Server.GRPCPort, logger)

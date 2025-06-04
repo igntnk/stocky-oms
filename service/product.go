@@ -22,7 +22,6 @@ type ProductService interface {
 
 type productService struct {
 	repo repository.ProductRepository
-	// Add other dependencies like cache, validator, etc.
 }
 
 func NewProductService(repo repository.ProductRepository) ProductService {

@@ -8,6 +8,10 @@ sms:
   insecure: true
   timeout: 5s
   tries: 5
-
+oms:
+  address: ""
+  insecure: true
+  timeout: 5s
+  tries: 5
 
 
