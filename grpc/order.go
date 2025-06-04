@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"github.com/igntnk/stocky-2pc-controller/protobufs/oms_pb"
+	"github.com/igntnk/stocky-2pc-controller/protobufs/sms_pb"
+	"github.com/igntnk/stocky-oms/clients"
 	"github.com/igntnk/stocky-oms/repository"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,10 +25,112 @@ type orderServer struct {
 	oms_pb.UnimplementedOrderServiceServer
 	orderService   service.OrderService
 	productService service.ProductService
+	sms            clients.SMSClient
+	createOrderMu  sync.Mutex
 }
 
-func RegisterOrderServer(server *grpc.Server, productService service.ProductService, orderService service.OrderService) {
-	oms_pb.RegisterOrderServiceServer(server, &orderServer{productService: productService, orderService: orderService})
+func RegisterOrderServer(server *grpc.Server, smsClient clients.SMSClient, productService service.ProductService, orderService service.OrderService) {
+	oms_pb.RegisterOrderServiceServer(server, &orderServer{productService: productService, sms: smsClient, orderService: orderService, createOrderMu: sync.Mutex{}})
+}
+
+func (s *orderServer) TCCCreateOrder(stream grpc.BidiStreamingServer[oms_pb.CreateOrderRequest, oms_pb.Order]) (err error) {
+	// lock resources event
+	_, err = stream.Recv()
+	if err != nil {
+		return err
+	}
+	s.createOrderMu.Lock()
+	defer s.createOrderMu.Unlock()
+
+	ctx := stream.Context()
+
+	smsStream, err := s.sms.ChangeCoupleProductAmount(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Send freeze event
+	err = smsStream.Send(&sms_pb.RemoveProductsRequest{})
+	if err != nil {
+		return err
+	}
+
+	createOrderReq, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	products := make([]models.OrderProductInput, 0, len(createOrderReq.GetProducts()))
+	for _, p := range createOrderReq.GetProducts() {
+		products = append(products, models.OrderProductInput{
+			ProductID: uuid.MustParse(p.GetProductUuid()),
+			Amount:    int(p.GetAmount()),
+		})
+	}
+
+	createReq := models.OrderCreateRequest{
+		UserID:  createOrderReq.GetUserId(),
+		StaffID: createOrderReq.GetStaffId(),
+		Comment: createOrderReq.GetComment(),
+	}
+
+	var order *models.Order
+	order, err = s.orderService.CreateNakedOrder(ctx, createReq)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			s.orderService.DeleteOrder(ctx, order.ID.String())
+		}
+	}()
+
+	smsPr := make([]*sms_pb.SetProductAmountRequest, len(products))
+	for i, product := range products {
+		_, err = s.orderService.AddOrderProduct(ctx, order.ID.String(), product.ProductID.String(), float64(product.Amount))
+		if err != nil {
+			return err
+		}
+		smsPr[i] = &sms_pb.SetProductAmountRequest{
+			Uuid:        product.ProductID.String(),
+			StoreAmount: float32(product.Amount),
+		}
+	}
+
+	err = smsStream.Send(&sms_pb.RemoveProductsRequest{
+		Products: smsPr,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = smsStream.Recv()
+	if err != nil {
+		return err
+	}
+
+	resultProducts := make([]*oms_pb.OrderProduct, len(products))
+	for i, product := range products {
+		resultProducts[i] = &oms_pb.OrderProduct{
+			OrderUuid:   order.ID.String(),
+			ResultPrice: 200,
+			ProductCode: product.ProductID.String(),
+			Amount:      int32(product.Amount),
+		}
+	}
+
+	err = stream.Send(&oms_pb.Order{
+		Uuid:         order.ID.String(),
+		Comment:      order.Comment,
+		UserId:       order.UserID,
+		StaffId:      order.StaffID,
+		Status:       oms_pb.OrderStatus_new,
+		OrderCost:    order.OrderCost,
+		CreationDate: timestamppb.New(order.CreationDate),
+		Products:     resultProducts,
+	})
+
+	return nil
 }
 
 func (s *orderServer) Create(ctx context.Context, req *oms_pb.CreateOrderRequest) (res *oms_pb.Order, err error) {

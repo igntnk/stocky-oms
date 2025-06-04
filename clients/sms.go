@@ -17,6 +17,7 @@ type SMSClient interface {
 	GetProductAmount(ctx context.Context, uuid string) (float32, error)
 	RemoveCoupleProducts(ctx context.Context, req []models.ProductWriteOffRequest) ([]string, error)
 	WriteOnCoupleProducts(ctx context.Context, req []models.ProductWriteOffRequest) ([]string, error)
+	ChangeCoupleProductAmount(ctx context.Context) (grpc.BidiStreamingClient[sms_pb.RemoveProductsRequest, sms_pb.CoupleUuidResponse], error)
 
 	// Supply methods
 	CreateSupply(
@@ -54,6 +55,10 @@ func NewSMSClient(conn *grpc.ClientConn) SMSClient {
 type smsClient struct {
 	productClient sms_pb.ProductServiceClient
 	supplyClient  sms_pb.SupplyServiceClient
+}
+
+func (c *smsClient) ChangeCoupleProductAmount(ctx context.Context) (grpc.BidiStreamingClient[sms_pb.RemoveProductsRequest, sms_pb.CoupleUuidResponse], error) {
+	return c.productClient.ChangeCoupleProductAmount(ctx)
 }
 
 func (c *smsClient) RemoveCoupleProducts(ctx context.Context, req []models.ProductWriteOffRequest) ([]string, error) {

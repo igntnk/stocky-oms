@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/igntnk/stocky-2pc-controller/protobufs/oms_pb"
 	"github.com/igntnk/stocky-oms/clients"
 	"github.com/igntnk/stocky-oms/repository"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,6 +16,7 @@ import (
 )
 
 type OrderService interface {
+	CreateNakedOrder(ctx context.Context, req models.OrderCreateRequest) (*models.Order, error)
 	CreateOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error)
 	CreateSagaOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error)
 	GetOrder(ctx context.Context, id string) (*models.OrderResponse, error)
@@ -22,24 +24,109 @@ type OrderService interface {
 	UpdateOrder(ctx context.Context, id string, req models.OrderUpdateRequest) (*models.OrderResponse, error)
 	DeleteOrder(ctx context.Context, id string) error
 	GetOrderProducts(ctx context.Context, orderID string) ([]*models.ProductDetail, error)
+	AddOrderProduct(ctx context.Context, orderID string, productID string, amount float64) (*models.ProductDetail, error)
+	TccCreateOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error)
 }
 
 type orderService struct {
 	sms         clients.SMSClient
+	oms         clients.OMSClient
 	orderRepo   repository.OrderRepository
 	productRepo repository.ProductRepository
 }
 
 func NewOrderService(
 	smsClient clients.SMSClient,
+	omsClient clients.OMSClient,
 	orderRepo repository.OrderRepository,
 	productRepo repository.ProductRepository,
 ) OrderService {
 	return &orderService{
 		sms:         smsClient,
+		oms:         omsClient,
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
 	}
+}
+
+func (s *orderService) TccCreateOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error) {
+	products := make([]*oms_pb.OrderProductInput, len(req.Products))
+	for i, product := range req.Products {
+		products[i] = &oms_pb.OrderProductInput{
+			ProductUuid: product.ProductID.String(),
+			Amount:      int32(product.Amount),
+		}
+	}
+
+	res, err := s.oms.TCCOrderCreation(ctx, &oms_pb.CreateOrderRequest{
+		Comment:  req.Comment,
+		UserId:   req.UserID,
+		StaffId:  req.StaffID,
+		Products: products,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resProducts := make([]models.ProductDetail, len(res.Products))
+	for i, product := range res.Products {
+		resProducts[i] = models.ProductDetail{
+			ID:          product.Product.Uuid,
+			Name:        product.Product.Name,
+			Price:       product.ResultPrice,
+			ProductCode: product.ProductCode,
+			Amount:      int(product.Amount),
+			TotalPrice:  product.ResultPrice * float64(product.Amount),
+		}
+	}
+
+	return &models.OrderResponse{
+		ID:           res.Uuid,
+		Comment:      res.Comment,
+		UserID:       res.UserId,
+		StaffID:      res.StaffId,
+		OrderCost:    res.OrderCost,
+		Status:       models.OrderStatus(res.Status),
+		CreationDate: res.CreationDate.String(),
+		Products:     resProducts,
+	}, nil
+}
+
+func (s *orderService) AddOrderProduct(ctx context.Context, orderID string, productID string, amount float64) (*models.ProductDetail, error) {
+	return s.orderRepo.AddOrderProduct(ctx, orderID, productID, amount)
+}
+
+func (s *orderService) CreateNakedOrder(ctx context.Context, req models.OrderCreateRequest) (*models.Order, error) {
+	// Create order with transaction
+	orderUUID := uuid.New()
+	cost, err := repository.Float64ToNumericWithPrecision(200)
+	if err != nil {
+		return nil, err
+	}
+
+	order, err := s.orderRepo.CreateNakedOrder(ctx, db.CreateOrderParams{
+		Uuid: pgtype.UUID{
+			Bytes: orderUUID,
+			Valid: true,
+		},
+		Comment:   pgtype.Text{String: req.Comment, Valid: true},
+		UserID:    req.UserID,
+		StaffID:   req.StaffID,
+		OrderCost: cost,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create order: %w", err)
+	}
+
+	return &models.Order{
+		ID:           order.Uuid.Bytes,
+		Comment:      order.Comment.String,
+		UserID:       order.UserID,
+		StaffID:      order.StaffID,
+		Status:       models.OrderStatus(order.Status),
+		CreationDate: order.CreationDate.Time,
+	}, nil
+
 }
 
 func (s *orderService) CreateOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error) {

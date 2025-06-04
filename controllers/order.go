@@ -21,8 +21,11 @@ func NewOrderController(orders service.OrderService) Controller {
 }
 
 func (o *orderController) Register(r *gin.Engine) {
-	group := r.Group("/api/SAGA/order")
-	group.POST("/create", o.Create)
+	sagaGroup := r.Group("/api/SAGA/order")
+	sagaGroup.POST("/create", o.Create)
+
+	tccGroup := r.Group("/api/TCC/order")
+	tccGroup.POST("/create", o.TCCCreate)
 }
 
 func (o *orderController) Create(context *gin.Context) {
@@ -50,6 +53,44 @@ func (o *orderController) Create(context *gin.Context) {
 	}
 
 	order, err := o.orders.CreateSagaOrder(context, models.OrderCreateRequest{
+		UserID:   "000000000000000000000000",
+		StaffID:  "000000000000000000000000",
+		Comment:  receivedOrder.Comment,
+		Products: products,
+	})
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"order": order})
+}
+
+func (o *orderController) TCCCreate(context *gin.Context) {
+	var err error
+
+	receivedOrder := requests.CreateOrder{}
+	err = context.ShouldBindBodyWithJSON(&receivedOrder)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": errors.Join(err, errors.New("failed to parse body")).Error()})
+		return
+	}
+
+	products := []models.OrderProductInput{}
+	for _, product := range receivedOrder.Products {
+		prUuid, err := uuid.Parse(product.Uuid)
+		if err != nil {
+			context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		products = append(products, models.OrderProductInput{
+			ProductID: prUuid,
+			Amount:    int(product.Amount),
+		})
+	}
+
+	order, err := o.orders.TccCreateOrder(context, models.OrderCreateRequest{
 		UserID:   "000000000000000000000000",
 		StaffID:  "000000000000000000000000",
 		Comment:  receivedOrder.Comment,
