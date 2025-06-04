@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 )
 
 const (
@@ -17,8 +18,17 @@ type Config struct {
 		URI string `yaml:"uri" mapstructure:"uri"`
 	} `yaml:"database" mapstructure:"database"`
 	Server struct {
-		Port int `mapstructure:"port"`
+		GRPCPort int `mapstructure:"grpc_port"`
+		RESTPort int `mapstructure:"rest_port"`
 	} `yaml:"server" mapstructure:"server"`
+	SMS GRPCClient `mapstructure:"sms"`
+}
+
+type GRPCClient struct {
+	Address  string        `mapstructure:"address"`
+	Insecure bool          `mapstructure:"insecure"`
+	Timeout  time.Duration `mapstructure:"timeout"`
+	Tries    int           `mapstructure:"tries"`
 }
 
 func Get(logger zerolog.Logger) *Config {
