@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
-	"github.com/igntnk/stocky-oms/proto/pb"
+	"github.com/igntnk/stocky-2pc-controller/protobufs/oms_pb"
 	"github.com/igntnk/stocky-oms/repository"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -18,15 +18,15 @@ import (
 )
 
 type productServer struct {
-	pb.UnimplementedProductServiceServer
+	oms_pb.UnimplementedProductServiceServer
 	service service.ProductService
 }
 
 func RegisterProductServer(server *grpc.Server, productService service.ProductService) {
-	pb.RegisterProductServiceServer(server, &productServer{service: productService})
+	oms_pb.RegisterProductServiceServer(server, &productServer{service: productService})
 }
 
-func (s *productServer) Create(ctx context.Context, req *pb.CreateRequest) (*pb.Product, error) {
+func (s *productServer) Create(ctx context.Context, req *oms_pb.CreateRequest) (*oms_pb.Product, error) {
 	// Convert protobuf request to service model
 	createReq := models.ProductCreateRequest{
 		Name:         req.GetName(),
@@ -44,7 +44,7 @@ func (s *productServer) Create(ctx context.Context, req *pb.CreateRequest) (*pb.
 	return s.productToProto(resp), nil
 }
 
-func (s *productServer) Get(ctx context.Context, req *pb.GetRequest) (*pb.Product, error) {
+func (s *productServer) Get(ctx context.Context, req *oms_pb.GetRequest) (*oms_pb.Product, error) {
 	resp, err := s.service.GetProduct(ctx, req.GetUuid())
 	if err != nil {
 		if errors.Is(err, repository.ErrProductNotFound) {
@@ -56,23 +56,23 @@ func (s *productServer) Get(ctx context.Context, req *pb.GetRequest) (*pb.Produc
 	return s.productToProto(resp), nil
 }
 
-func (s *productServer) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
+func (s *productServer) List(ctx context.Context, req *oms_pb.ListRequest) (*oms_pb.ListResponse, error) {
 	resp, err := s.service.ListProducts(ctx, int(req.GetLimit()), int(req.GetOffset()))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list products: %v", err)
 	}
 
-	products := make([]*pb.Product, 0, len(resp))
+	products := make([]*oms_pb.Product, 0, len(resp))
 	for _, p := range resp {
 		products = append(products, s.productToProto(p))
 	}
 
-	return &pb.ListResponse{
+	return &oms_pb.ListResponse{
 		Products: products,
 	}, nil
 }
 
-func (s *productServer) Update(ctx context.Context, req *pb.UpdateRequest) (*pb.Product, error) {
+func (s *productServer) Update(ctx context.Context, req *oms_pb.UpdateRequest) (*oms_pb.Product, error) {
 	updateReq := models.ProductUpdateRequest{}
 
 	if req.Name != nil {
@@ -96,7 +96,7 @@ func (s *productServer) Update(ctx context.Context, req *pb.UpdateRequest) (*pb.
 	return s.productToProto(resp), nil
 }
 
-func (s *productServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*emptypb.Empty, error) {
+func (s *productServer) Delete(ctx context.Context, req *oms_pb.DeleteRequest) (*emptypb.Empty, error) {
 	err := s.service.DeleteProduct(ctx, req.GetUuid())
 	if err != nil {
 		if errors.Is(err, repository.ErrProductNotFound) {
@@ -108,28 +108,28 @@ func (s *productServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*emp
 	return &emptypb.Empty{}, nil
 }
 
-func (s *productServer) GetByOrder(ctx context.Context, req *pb.GetByOrderRequest) (*pb.ListResponse, error) {
+func (s *productServer) GetByOrder(ctx context.Context, req *oms_pb.GetByOrderRequest) (*oms_pb.ListResponse, error) {
 	resp, err := s.service.GetProductsByOrder(ctx, req.GetOrderUuid())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get products by order: %v", err)
 	}
 
-	products := make([]*pb.Product, 0, len(resp))
+	products := make([]*oms_pb.Product, 0, len(resp))
 	for _, p := range resp {
 		products = append(products, s.productToProto(p))
 	}
 
-	return &pb.ListResponse{
+	return &oms_pb.ListResponse{
 		Products: products,
 	}, nil
 }
 
 // Helper function to convert service model to protobuf message
-func (s *productServer) productToProto(p *models.ProductResponse) *pb.Product {
+func (s *productServer) productToProto(p *models.ProductResponse) *oms_pb.Product {
 	createdAt, _ := time.Parse(time.RFC3339, p.CreatedAt)
 	updatedAt, _ := time.Parse(time.RFC3339, p.UpdatedAt)
 
-	return &pb.Product{
+	return &oms_pb.Product{
 		Uuid:         p.ID,
 		Name:         p.Name,
 		ProductCode:  p.ProductCode,

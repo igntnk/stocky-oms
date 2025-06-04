@@ -16,6 +16,11 @@ type Product struct {
 	UpdatedAt    time.Time
 }
 
+type ProductWriteOffRequest struct {
+	Uuid   string
+	Amount float64
+}
+
 // ProductCreateRequest represents input for product creation
 type ProductCreateRequest struct {
 	Name         string  `json:"name" validate:"required,min=2,max=80"`

@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
-	"github.com/igntnk/stocky-oms/proto/pb"
+	"github.com/igntnk/stocky-2pc-controller/protobufs/oms_pb"
 	"github.com/igntnk/stocky-oms/repository"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -19,16 +19,16 @@ import (
 )
 
 type orderServer struct {
-	pb.UnimplementedOrderServiceServer
+	oms_pb.UnimplementedOrderServiceServer
 	orderService   service.OrderService
 	productService service.ProductService
 }
 
 func RegisterOrderServer(server *grpc.Server, productService service.ProductService, orderService service.OrderService) {
-	pb.RegisterOrderServiceServer(server, &orderServer{productService: productService, orderService: orderService})
+	oms_pb.RegisterOrderServiceServer(server, &orderServer{productService: productService, orderService: orderService})
 }
 
-func (s *orderServer) Create(ctx context.Context, req *pb.CreateOrderRequest) (*pb.Order, error) {
+func (s *orderServer) Create(ctx context.Context, req *oms_pb.CreateOrderRequest) (res *oms_pb.Order, err error) {
 	// Convert protobuf request to service model
 	products := make([]models.OrderProductInput, 0, len(req.GetProducts()))
 	for _, p := range req.GetProducts() {
@@ -46,7 +46,8 @@ func (s *orderServer) Create(ctx context.Context, req *pb.CreateOrderRequest) (*
 	}
 
 	// Call service layer
-	resp, err := s.orderService.CreateOrder(ctx, createReq)
+	var resp *models.OrderResponse
+	resp, err = s.orderService.CreateOrder(ctx, createReq)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrInvalidOrderTotal):
@@ -62,7 +63,7 @@ func (s *orderServer) Create(ctx context.Context, req *pb.CreateOrderRequest) (*
 	return s.orderToProto(resp), nil
 }
 
-func (s *orderServer) Get(ctx context.Context, req *pb.GetOrderRequest) (*pb.Order, error) {
+func (s *orderServer) Get(ctx context.Context, req *oms_pb.GetOrderRequest) (*oms_pb.Order, error) {
 	resp, err := s.orderService.GetOrder(ctx, req.GetUuid())
 	if err != nil {
 		if errors.Is(err, repository.ErrOrderNotFound) {
@@ -74,7 +75,7 @@ func (s *orderServer) Get(ctx context.Context, req *pb.GetOrderRequest) (*pb.Ord
 	return s.orderToProto(resp), nil
 }
 
-func (s *orderServer) List(ctx context.Context, req *pb.ListOrderRequest) (*pb.ListOrderResponse, error) {
+func (s *orderServer) List(ctx context.Context, req *oms_pb.ListOrderRequest) (*oms_pb.ListOrderResponse, error) {
 	filter := models.OrderFilter{
 		Limit:  int(req.GetLimit()),
 		Offset: int(req.GetOffset()),
@@ -86,24 +87,24 @@ func (s *orderServer) List(ctx context.Context, req *pb.ListOrderRequest) (*pb.L
 		return nil, status.Errorf(codes.Internal, "failed to list orders: %v", err)
 	}
 
-	orders := make([]*pb.Order, 0, len(resp))
+	orders := make([]*oms_pb.Order, 0, len(resp))
 	for _, o := range resp {
 		orders = append(orders, s.orderToProto(o))
 	}
 
-	return &pb.ListOrderResponse{
+	return &oms_pb.ListOrderResponse{
 		Orders: orders,
 	}, nil
 }
 
-func (s *orderServer) Update(ctx context.Context, req *pb.UpdateOrderRequest) (*pb.Order, error) {
+func (s *orderServer) Update(ctx context.Context, req *oms_pb.UpdateOrderRequest) (*oms_pb.Order, error) {
 	updateReq := models.OrderUpdateRequest{}
 
 	if req.Comment != nil {
 		updateReq.Comment = req.Comment
 	}
 	if req.Status != nil {
-		statusStr := pb.OrderStatus_name[int32(*req.Status)]
+		statusStr := oms_pb.OrderStatus_name[int32(*req.Status)]
 		updateReq.Status = (*models.OrderStatus)(&statusStr)
 	}
 
@@ -118,7 +119,7 @@ func (s *orderServer) Update(ctx context.Context, req *pb.UpdateOrderRequest) (*
 	return s.orderToProto(resp), nil
 }
 
-func (s *orderServer) Delete(ctx context.Context, req *pb.DeleteOrderRequest) (*emptypb.Empty, error) {
+func (s *orderServer) Delete(ctx context.Context, req *oms_pb.DeleteOrderRequest) (*emptypb.Empty, error) {
 	err := s.orderService.DeleteOrder(ctx, req.GetUuid())
 	if err != nil {
 		if errors.Is(err, repository.ErrOrderNotFound) {
@@ -130,16 +131,16 @@ func (s *orderServer) Delete(ctx context.Context, req *pb.DeleteOrderRequest) (*
 	return &emptypb.Empty{}, nil
 }
 
-func (s *orderServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.ListResponse, error) {
+func (s *orderServer) GetProducts(ctx context.Context, req *oms_pb.GetProductsRequest) (*oms_pb.ListResponse, error) {
 	products, err := s.orderService.GetOrderProducts(ctx, req.GetOrderUuid())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get order products: %v", err)
 	}
 
 	// Convert to product.ListResponse
-	productList := make([]*pb.Product, 0, len(products))
+	productList := make([]*oms_pb.Product, 0, len(products))
 	for _, p := range products {
-		productList = append(productList, &pb.Product{
+		productList = append(productList, &oms_pb.Product{
 			Uuid:         p.ID,
 			Name:         p.Name,
 			ProductCode:  p.ProductCode,
@@ -147,14 +148,14 @@ func (s *orderServer) GetProducts(ctx context.Context, req *pb.GetProductsReques
 		})
 	}
 
-	return &pb.ListResponse{
+	return &oms_pb.ListResponse{
 		Products: productList,
 	}, nil
 }
 
 // Helper functions for conversion between models and protobuf
 
-func (s *orderServer) orderToProto(o *models.OrderResponse) *pb.Order {
+func (s *orderServer) orderToProto(o *models.OrderResponse) *oms_pb.Order {
 	creationDate, _ := time.Parse(time.RFC3339, o.CreationDate)
 
 	var finishDate *timestamppb.Timestamp
@@ -163,9 +164,9 @@ func (s *orderServer) orderToProto(o *models.OrderResponse) *pb.Order {
 		finishDate = timestamppb.New(fd)
 	}
 
-	orderProducts := make([]*pb.OrderProduct, 0, len(o.Products))
+	orderProducts := make([]*oms_pb.OrderProduct, 0, len(o.Products))
 	for _, p := range o.Products {
-		orderProducts = append(orderProducts, &pb.OrderProduct{
+		orderProducts = append(orderProducts, &oms_pb.OrderProduct{
 			ProductUuid: p.ID,
 			OrderUuid:   o.ID,
 			ProductCode: p.ProductCode,
@@ -174,13 +175,13 @@ func (s *orderServer) orderToProto(o *models.OrderResponse) *pb.Order {
 		})
 	}
 
-	return &pb.Order{
+	return &oms_pb.Order{
 		Uuid:         o.ID,
 		Comment:      o.Comment,
 		UserId:       o.UserID,
 		StaffId:      o.StaffID,
 		OrderCost:    o.OrderCost,
-		Status:       pb.OrderStatus(pb.OrderStatus_value[string(o.Status)]),
+		Status:       oms_pb.OrderStatus(oms_pb.OrderStatus_value[string(o.Status)]),
 		CreationDate: timestamppb.New(creationDate),
 		FinishDate:   finishDate,
 		Products:     orderProducts,

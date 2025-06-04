@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/igntnk/stocky-oms/clients"
 	"github.com/igntnk/stocky-oms/repository"
 	"github.com/jackc/pgx/v5/pgtype"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 type OrderService interface {
 	CreateOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error)
+	CreateSagaOrder(ctx context.Context, req models.OrderCreateRequest) (*models.OrderResponse, error)
 	GetOrder(ctx context.Context, id string) (*models.OrderResponse, error)
 	ListOrders(ctx context.Context, filter models.OrderFilter) ([]*models.OrderResponse, error)
 	UpdateOrder(ctx context.Context, id string, req models.OrderUpdateRequest) (*models.OrderResponse, error)
@@ -23,15 +25,18 @@ type OrderService interface {
 }
 
 type orderService struct {
+	sms         clients.SMSClient
 	orderRepo   repository.OrderRepository
 	productRepo repository.ProductRepository
 }
 
 func NewOrderService(
+	smsClient clients.SMSClient,
 	orderRepo repository.OrderRepository,
 	productRepo repository.ProductRepository,
 ) OrderService {
 	return &orderService{
+		sms:         smsClient,
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
 	}
@@ -61,6 +66,67 @@ func (s *orderService) CreateOrder(ctx context.Context, req models.OrderCreateRe
 		StaffID:   req.StaffID,
 		OrderCost: cost,
 	}, products)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create order: %w", err)
+	}
+
+	// Fetch products with details for response
+	var orderProducts []db.GetOrderProductsRow
+	orderProducts, err = s.orderRepo.GetOrderProducts(ctx, order.Uuid.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch order products: %w", err)
+	}
+
+	return s.buildOrderResponse(order, orderProducts)
+}
+
+func (s *orderService) CreateSagaOrder(ctx context.Context, req models.OrderCreateRequest) (res *models.OrderResponse, err error) {
+	products := req.Products
+
+	prods, totalCost, err := s.validateOrderProducts(ctx, req.Products)
+	if err != nil {
+		return nil, err
+	}
+
+	reqPr := make([]models.ProductWriteOffRequest, len(products))
+	for i, product := range products {
+		reqPr[i] = models.ProductWriteOffRequest{
+			Uuid:   product.ProductID.String(),
+			Amount: float64(product.Amount),
+		}
+	}
+
+	_, err = s.sms.RemoveCoupleProducts(ctx, reqPr)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			_, _ = s.sms.WriteOnCoupleProducts(ctx, reqPr)
+		}
+	}()
+
+	var cost pgtype.Numeric
+	cost, err = repository.Float64ToNumericWithPrecision(totalCost)
+	if err != nil {
+		return nil, err
+	}
+
+	var order db.Order
+	order, err = s.orderRepo.CreateWithProducts(ctx, db.CreateOrderParams{
+		Uuid: pgtype.UUID{
+			Bytes: uuid.New(),
+			Valid: true,
+		},
+		Comment: pgtype.Text{
+			String: req.Comment,
+			Valid:  true,
+		},
+		UserID:    req.UserID,
+		StaffID:   req.StaffID,
+		OrderCost: cost,
+	}, prods)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
