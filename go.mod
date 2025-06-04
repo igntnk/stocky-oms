@@ -8,7 +8,7 @@ require (
 	github.com/avito-tech/go-transaction-manager v1.5.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/google/uuid v1.6.0
-	github.com/igntnk/stocky-2pc-controller v0.0.0-20250603122220-b4384abaf6d5
+	github.com/igntnk/stocky-2pc-controller v0.0.1
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/rs/zerolog v1.34.0
